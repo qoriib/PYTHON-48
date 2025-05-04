@@ -20,7 +20,7 @@ if uploaded_file:
     df = pd.read_excel(uploaded_file)
     
     st.subheader("Data Awal")
-    st.write(df.head())
+    st.write(df)
 
     # Ekstrak fitur
     features = df[['Jumlah Kasus', 'Kepadatan Penduduk']]
