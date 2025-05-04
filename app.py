@@ -11,7 +11,7 @@ from pyclustering.utils import calculate_distance_matrix
 import random
 
 # Judul Aplikasi
-st.title("Clustering DBD: KMeans vs KMedoids")
+st.title("KMeans vs KMedoids")
 
 # Upload file
 uploaded_file = st.file_uploader("Unggah file Excel (format .xlsx)", type=["xlsx"])
@@ -60,7 +60,7 @@ if uploaded_file:
                     kmedoids_labels[i] = idx
             sil_scores_kmedoids.append(silhouette_score(normalized, kmedoids_labels))
 
-        # Plot silhouette scores
+        # Tampilkan silhouette scores
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.plot(k_range, sil_scores_kmeans, 'bo-', label='KMeans')
         ax.plot(k_range, sil_scores_kmedoids, 'ro-', label='KMedoids')
@@ -71,13 +71,13 @@ if uploaded_file:
         ax.grid(True)
         st.pyplot(fig)
 
-    # Find k_optimal based on the maximum silhouette score for KMeans
+    # Mencari nilai k optimal
     k_optimal_kmeans = k_range[np.argmax(sil_scores_kmeans)]
     k_optimal_kmedoids = k_range[np.argmax(sil_scores_kmedoids)]
 
-    # Display the selected optimal k values
-    st.write(f"Optimal number of clusters for KMeans: {k_optimal_kmeans}")
-    st.write(f"Optimal number of clusters for KMedoids: {k_optimal_kmedoids}")
+    # Tampilkan jumlah cluster optimal
+    st.write(f"Jumlah cluster optimal untuk KMeans: {k_optimal_kmeans}")
+    st.write(f"Jumlah cluster optimal untuk KMedoids: {k_optimal_kmedoids}")
 
     # --- Clustering KMeans with optimal k
     kmeans = KMeans(n_clusters=k_optimal_kmeans, random_state=42)
