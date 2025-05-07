@@ -26,7 +26,7 @@ if 'stage' not in st.session_state:
 # Tombol untuk berpindah antar bagian
 data_upload_button = st.sidebar.button('Upload Data')
 silhouette_score_button = st.sidebar.button('Silhouette Score')
-clustering_button = st.sidebar.button('Clustering')
+clustering_button = st.sidebar.button('Clustering (DBI)')
 visualisasi_button = st.sidebar.button('Visualisasi Hasil')
 hasil_akhir_button = st.sidebar.button('Hasil Clustering')
 
