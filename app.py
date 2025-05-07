@@ -16,37 +16,37 @@ st.title("KMeans vs KMedoids")
 # Sidebar untuk navigasi
 st.sidebar.markdown("""
     # KMeans vs KMedoids
-    Pilih bagian untuk melanjutkan.
+    Pilih menu dibawah.
 """)
 
 # Tentukan tahap yang aktif
 if 'stage' not in st.session_state:
-    st.session_state.stage = 'Data Upload'
+    st.session_state.stage = 'Upload Data'
 
 # Tombol untuk berpindah antar bagian
-data_upload_button = st.sidebar.button('Data Upload', disabled=st.session_state.stage != 'Data Upload')
-silhouette_score_button = st.sidebar.button('Perbandingan Silhouette Score', disabled=st.session_state.stage not in ['Perbandingan Silhouette Score', 'Data Upload'])
-clustering_button = st.sidebar.button('Clustering', disabled=st.session_state.stage not in ['Clustering', 'Perbandingan Silhouette Score'])
-visualisasi_button = st.sidebar.button('Visualisasi Hasil', disabled=st.session_state.stage not in ['Visualisasi Hasil', 'Clustering'])
-hasil_akhir_button = st.sidebar.button('Hasil Akhir', disabled=st.session_state.stage not in ['Hasil Akhir', 'Visualisasi Hasil'])
+data_upload_button = st.sidebar.button('Upload Data')
+silhouette_score_button = st.sidebar.button('Silhouette Score')
+clustering_button = st.sidebar.button('Clustering')
+visualisasi_button = st.sidebar.button('Visualisasi Hasil')
+hasil_akhir_button = st.sidebar.button('Hasil Clustering')
 
 # Mengatur tombol yang bisa dipilih untuk berpindah ke tahap berikutnya
 if data_upload_button:
-    st.session_state.stage = 'Data Upload'
+    st.session_state.stage = 'Upload Data'
 elif silhouette_score_button:
-    st.session_state.stage = 'Perbandingan Silhouette Score'
+    st.session_state.stage = 'Silhouette Score'
 elif clustering_button:
     st.session_state.stage = 'Clustering'
 elif visualisasi_button:
     st.session_state.stage = 'Visualisasi Hasil'
 elif hasil_akhir_button:
-    st.session_state.stage = 'Hasil Akhir'
+    st.session_state.stage = 'Hasil Clustering'
 
 # Default Tab
 tab = st.session_state.stage
 
 # Upload file dan lakukan perhitungan hanya sekali setelah file diunggah
-if tab == "Data Upload":
+if tab == "Upload Data":
     uploaded_file = st.file_uploader("Unggah file Excel (format .xlsx)", type=["xlsx"])
 
     if uploaded_file:
@@ -106,11 +106,8 @@ if tab == "Data Upload":
         st.session_state.sil_scores_kmeans = sil_scores_kmeans
         st.session_state.sil_scores_kmedoids = sil_scores_kmedoids
 
-        # Setelah perhitungan selesai, buka tahap berikutnya (Silhouette Score)
-        st.session_state.stage = 'Perbandingan Silhouette Score'
-
-# Perbandingan Silhouette Score
-if tab == "Perbandingan Silhouette Score":
+# Dalam stage "Silhouette Score"
+if tab == "Silhouette Score":
     if 'uploaded_file' in st.session_state and st.session_state.uploaded_file is not None:
         # Ambil data dan silhouette score dari session_state
         uploaded_file = st.session_state.uploaded_file
@@ -122,22 +119,39 @@ if tab == "Perbandingan Silhouette Score":
         sil_scores_kmeans = st.session_state.sil_scores_kmeans
         sil_scores_kmedoids = st.session_state.sil_scores_kmedoids
         
-        # Tampilkan silhouette scores
-        st.subheader("Perbandingan Silhouette Score")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(k_range, sil_scores_kmeans, 'bo-', label='KMeans')
-        ax.plot(k_range, sil_scores_kmedoids, 'ro-', label='KMedoids')
-        ax.set_title('Silhouette Score: KMeans vs KMedoids')
-        ax.set_xlabel('Jumlah Klaster (k)')
-        ax.set_ylabel('Silhouette Score')
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+        # Cari k optimal untuk KMeans dan KMedoids
+        optimal_k_kmeans = k_range[np.argmax(sil_scores_kmeans)]
+        optimal_k_kmedoids = k_range[np.argmax(sil_scores_kmedoids)]
+        
+        # Tampilkan silhouette score untuk KMeans
+        st.subheader("Silhouette Score: KMeans")
+        fig_kmeans, ax_kmeans = plt.subplots(figsize=(10, 5))
+        ax_kmeans.plot(k_range, sil_scores_kmeans, 'bo-', label='KMeans')
+        ax_kmeans.set_title(f'Silhouette Score: KMeans (Optimal k = {optimal_k_kmeans})')
+        ax_kmeans.set_xlabel('Jumlah Klaster (k)')
+        ax_kmeans.set_ylabel('Silhouette Score')
+        ax_kmeans.legend()
+        ax_kmeans.grid(True)
+        st.pyplot(fig_kmeans)
 
-        # Setelah tahap perbandingan selesai, buka tahap berikutnya (Clustering)
-        st.session_state.stage = 'Clustering'
+        # Tampilkan silhouette score untuk KMedoids
+        st.subheader("Silhouette Score: KMedoids")
+        fig_kmedoids, ax_kmedoids = plt.subplots(figsize=(10, 5))
+        ax_kmedoids.plot(k_range, sil_scores_kmedoids, 'ro-', label='KMedoids')
+        ax_kmedoids.set_title(f'Silhouette Score: KMedoids (Optimal k = {optimal_k_kmedoids})')
+        ax_kmedoids.set_xlabel('Jumlah Klaster (k)')
+        ax_kmedoids.set_ylabel('Silhouette Score')
+        ax_kmedoids.legend()
+        ax_kmedoids.grid(True)
+        st.pyplot(fig_kmedoids)
 
-# Clustering
+        # Menampilkan nilai k optimal
+        st.subheader("Jumlah cluster optimal")
+        st.write(f"Jumlah cluster optimal untuk **KMeans**: {optimal_k_kmeans}")
+        st.write(f"Jumlah cluster optimal untuk **KMedoids**: {optimal_k_kmedoids}")
+    else:
+        st.error("Silakan unggah data terlebih dahulu di tahap 'Upload Data'.")
+
 if tab == "Clustering":
     if 'uploaded_file' in st.session_state and st.session_state.uploaded_file is not None:
         uploaded_file = st.session_state.uploaded_file
@@ -151,10 +165,6 @@ if tab == "Clustering":
         
         k_optimal_kmeans = k_range[np.argmax(sil_scores_kmeans)]
         k_optimal_kmedoids = k_range[np.argmax(sil_scores_kmedoids)]
-
-        # Tampilkan jumlah cluster optimal
-        st.write(f"Jumlah cluster optimal untuk KMeans: {k_optimal_kmeans}")
-        st.write(f"Jumlah cluster optimal untuk KMedoids: {k_optimal_kmedoids}")
 
         # --- Clustering KMeans with optimal k
         kmeans = KMeans(n_clusters=k_optimal_kmeans, random_state=42)
@@ -177,6 +187,9 @@ if tab == "Clustering":
         df['Cluster_KMeans'] = kmeans_labels
         df['Cluster_KMedoids'] = kmedoids_labels
 
+        # Simpan df ke dalam session_state agar bisa digunakan di tahap berikutnya
+        st.session_state.df_with_labels = df
+
         # Tampilkan skor evaluasi
         st.subheader("Davies-Bouldin Index")
         st.write(f"**KMeans**: {kmeans_dbi:.4f}")
@@ -184,37 +197,52 @@ if tab == "Clustering":
 
         # Setelah tahap clustering selesai, buka tahap berikutnya (Visualisasi Hasil)
         st.session_state.stage = 'Visualisasi Hasil'
+    else:
+        st.error("Silakan unggah data terlebih dahulu di tahap 'Upload Data'.")
 
-# Visualisasi Hasil
+# Dalam stage "Visualisasi Hasil"
 if tab == "Visualisasi Hasil":
-    if 'uploaded_file' in st.session_state and st.session_state.uploaded_file is not None:
-        uploaded_file = st.session_state.uploaded_file
-        df = pd.read_excel(uploaded_file)
+    if 'df_with_labels' in st.session_state:
+        df = st.session_state.df_with_labels  # Ambil DataFrame dengan cluster labels
+        
+        # Ambil normalized dari session_state
+        normalized = st.session_state.normalized
+
+        # Ambil cluster labels dari session_state
+        kmeans_labels = df['Cluster_KMeans']
+        kmedoids_labels = df['Cluster_KMedoids']
         
         st.subheader("Visualisasi Hasil Clustering")
 
-        fig2, ax2 = plt.subplots(1, 2, figsize=(14, 5))
+        # Visualisasi untuk KMeans
+        fig_kmeans, ax_kmeans = plt.subplots(figsize=(10, 5))  # Set figure size for horizontal plot
+        sns.scatterplot(x=normalized[:, 0], y=normalized[:, 1], hue=kmeans_labels, palette='Set2', ax=ax_kmeans)
+        ax_kmeans.set_title("K-Means Clustering")
+        ax_kmeans.set_xlabel("Jumlah Kasus")
+        ax_kmeans.set_ylabel("Kepadatan")
+        ax_kmeans.legend(title="Cluster")
+        ax_kmeans.grid(True)
+        st.pyplot(fig_kmeans)
 
-        sns.scatterplot(x=normalized[:, 0], y=normalized[:, 1], hue=kmeans_labels, palette='Set2', ax=ax2[0])
-        ax2[0].set_title("K-Means Clustering")
-        ax2[0].set_xlabel("Jumlah Kasus")
-        ax2[0].set_ylabel("Kepadatan")
+        # Visualisasi untuk KMedoids
+        fig_kmedoids, ax_kmedoids = plt.subplots(figsize=(10, 5))  # Set figure size for horizontal plot
+        sns.scatterplot(x=normalized[:, 0], y=normalized[:, 1], hue=kmedoids_labels, palette='Set1', ax=ax_kmedoids)
+        ax_kmedoids.set_title("K-Medoids Clustering")
+        ax_kmedoids.set_xlabel("Jumlah Kasus")
+        ax_kmedoids.set_ylabel("Kepadatan")
+        ax_kmedoids.legend(title="Cluster")
+        ax_kmedoids.grid(True)
+        st.pyplot(fig_kmedoids)
+    else:
+        st.error("Silakan lakukan clustering data terlebih dahulu di tahap 'Clustering'.")
 
-        sns.scatterplot(x=normalized[:, 0], y=normalized[:, 1], hue=kmedoids_labels, palette='Set1', ax=ax2[1])
-        ax2[1].set_title("K-Medoids Clustering")
-        ax2[1].set_xlabel("Jumlah Kasus")
-        ax2[1].set_ylabel("Kepadatan")
+# Dalam stage "Hasil Clustering"
+if tab == "Hasil Clustering":
+    if 'df_with_labels' in st.session_state:
+        df = st.session_state.df_with_labels  # Ambil DataFrame dengan cluster labels
 
-        st.pyplot(fig2)
-
-        # Setelah tahap visualisasi selesai, buka tahap berikutnya (Hasil Akhir)
-        st.session_state.stage = 'Hasil Akhir'
-
-# Hasil Akhir
-if tab == "Hasil Akhir":
-    if 'uploaded_file' in st.session_state and st.session_state.uploaded_file is not None:
-        uploaded_file = st.session_state.uploaded_file
-        df = pd.read_excel(uploaded_file)
-        
-        st.subheader("Hasil Akhir per Kecamatan")
+        # Tampilkan Hasil Clustering per Kecamatan
+        st.subheader("Hasil Clustering per Kecamatan")
         st.dataframe(df[['Kecamatan', 'Cluster_KMeans', 'Cluster_KMedoids']])
+    else:
+        st.error("Silakan lakukan clustering data terlebih dahulu di tahap 'Clustering'.")
