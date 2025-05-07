@@ -45,7 +45,7 @@ elif hasil_akhir_button:
 # Default Tab
 tab = st.session_state.stage
 
-# Upload file
+# Upload file dan lakukan perhitungan hanya sekali setelah file diunggah
 if tab == "Data Upload":
     uploaded_file = st.file_uploader("Unggah file Excel (format .xlsx)", type=["xlsx"])
 
@@ -53,6 +53,7 @@ if tab == "Data Upload":
         # Simpan file yang diunggah ke st.session_state untuk akses di seluruh aplikasi
         st.session_state.uploaded_file = uploaded_file
         
+        # Baca data
         df = pd.read_excel(uploaded_file)
         
         st.subheader("Data Awal")
@@ -73,18 +74,45 @@ if tab == "Data Upload":
         # Simpan normalized ke dalam session state untuk akses di seluruh aplikasi
         st.session_state.normalized = normalized
 
-        # Simpan k_range dan sil_scores untuk digunakan di tahap berikutnya
+        # Simpan k_range untuk digunakan di tahap berikutnya
         k_range = range(2, 11)
         st.session_state.k_range = k_range
-        st.session_state.sil_scores_kmeans = []
-        st.session_state.sil_scores_kmedoids = []
 
-        # Setelah tahap upload selesai, buka tahap berikutnya (Silhouette Score)
+        # Lakukan perhitungan silhouette score dan clustering sekali setelah file diunggah
+        sil_scores_kmeans = []
+        sil_scores_kmedoids = []
+
+        for k in k_range:
+            # KMeans
+            kmeans = KMeans(n_clusters=k, random_state=42)
+            kmeans_labels = kmeans.fit_predict(normalized)
+            sil_scores_kmeans.append(silhouette_score(normalized, kmeans_labels))
+
+            # KMedoids
+            random.seed(42)
+            initial_medoids = random.sample(range(len(normalized)), k)
+            distance_matrix = calculate_distance_matrix(normalized.tolist())
+            kmedoids_instance = kmedoids(data=distance_matrix, initial_index_medoids=initial_medoids, data_type='distance_matrix')
+            kmedoids_instance.process()
+            clusters = kmedoids_instance.get_clusters()
+
+            kmedoids_labels = np.zeros(len(normalized), dtype=int)
+            for idx, cluster in enumerate(clusters):
+                for i in cluster:
+                    kmedoids_labels[i] = idx
+            sil_scores_kmedoids.append(silhouette_score(normalized, kmedoids_labels))
+
+        # Simpan hasil perhitungan silhouette score di session_state
+        st.session_state.sil_scores_kmeans = sil_scores_kmeans
+        st.session_state.sil_scores_kmedoids = sil_scores_kmedoids
+
+        # Setelah perhitungan selesai, buka tahap berikutnya (Silhouette Score)
         st.session_state.stage = 'Perbandingan Silhouette Score'
 
 # Perbandingan Silhouette Score
 if tab == "Perbandingan Silhouette Score":
     if 'uploaded_file' in st.session_state and st.session_state.uploaded_file is not None:
+        # Ambil data dan silhouette score dari session_state
         uploaded_file = st.session_state.uploaded_file
         df = pd.read_excel(uploaded_file)
         
@@ -94,39 +122,17 @@ if tab == "Perbandingan Silhouette Score":
         sil_scores_kmeans = st.session_state.sil_scores_kmeans
         sil_scores_kmedoids = st.session_state.sil_scores_kmedoids
         
-        # Rentang jumlah klaster
+        # Tampilkan silhouette scores
         st.subheader("Perbandingan Silhouette Score")
-        with st.spinner("Menghitung silhouette scores..."):
-            for k in k_range:
-                # KMeans
-                kmeans = KMeans(n_clusters=k, random_state=42)
-                kmeans_labels = kmeans.fit_predict(normalized)
-                sil_scores_kmeans.append(silhouette_score(normalized, kmeans_labels))
-
-                # KMedoids
-                random.seed(42)
-                initial_medoids = random.sample(range(len(normalized)), k)
-                distance_matrix = calculate_distance_matrix(normalized.tolist())
-                kmedoids_instance = kmedoids(data=distance_matrix, initial_index_medoids=initial_medoids, data_type='distance_matrix')
-                kmedoids_instance.process()
-                clusters = kmedoids_instance.get_clusters()
-
-                kmedoids_labels = np.zeros(len(normalized), dtype=int)
-                for idx, cluster in enumerate(clusters):
-                    for i in cluster:
-                        kmedoids_labels[i] = idx
-                sil_scores_kmedoids.append(silhouette_score(normalized, kmedoids_labels))
-
-            # Tampilkan silhouette scores
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.plot(k_range, sil_scores_kmeans, 'bo-', label='KMeans')
-            ax.plot(k_range, sil_scores_kmedoids, 'ro-', label='KMedoids')
-            ax.set_title('Silhouette Score: KMeans vs KMedoids')
-            ax.set_xlabel('Jumlah Klaster (k)')
-            ax.set_ylabel('Silhouette Score')
-            ax.legend()
-            ax.grid(True)
-            st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(k_range, sil_scores_kmeans, 'bo-', label='KMeans')
+        ax.plot(k_range, sil_scores_kmedoids, 'ro-', label='KMedoids')
+        ax.set_title('Silhouette Score: KMeans vs KMedoids')
+        ax.set_xlabel('Jumlah Klaster (k)')
+        ax.set_ylabel('Silhouette Score')
+        ax.legend()
+        ax.grid(True)
+        st.pyplot(fig)
 
         # Setelah tahap perbandingan selesai, buka tahap berikutnya (Clustering)
         st.session_state.stage = 'Clustering'
@@ -137,7 +143,7 @@ if tab == "Clustering":
         uploaded_file = st.session_state.uploaded_file
         df = pd.read_excel(uploaded_file)
         
-        # Ambil normalized dan k_range dari session_state
+        # Ambil normalized dan silhouette score dari session_state
         normalized = st.session_state.normalized
         k_range = st.session_state.k_range
         sil_scores_kmeans = st.session_state.sil_scores_kmeans
